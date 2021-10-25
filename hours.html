@@ -1,0 +1,203 @@
+<meta charset="utf-8">
+<title>Hour tracker</title>
+
+<script>
+'use strict';
+
+const ROOT = 'http://www.google.com/calendar/event?',
+      MILLISECONDS_IN_MINUTES = 60000;
+
+let startTime = null;
+let endTime = null;
+// let breaks = [];
+
+let timer = setInterval(timeDiffRender, MILLISECONDS_IN_MINUTES);
+
+function save() {
+  if (startTime !== null) {
+    localStorage.setItem('start-time', startTime.toString());
+  }
+  if (endTime !== null) {
+    localStorage.setItem('end-time', endTime.toString());
+  }
+  localStorage.setItem('title', document.getElementById('title').value);
+  localStorage.setItem('desc', document.getElementById('description').value);
+}
+
+
+function submit() {
+  if (endTime === null) {
+    window.alert('The event has not been ended yet.');
+    return;
+  }
+
+  let text = document.getElementById('title').value;
+  let details =  document.getElementById('description').value;
+
+  let queryParameters = new URLSearchParams([
+    ['action', 'TEMPLATE'],
+    ['text', text],
+    ['details', details + `\n#timetracker ${timeDiff()} hours`],
+    ['ctz', 'America/Los_Angeles'],
+    ['sf', 'true'],
+    ['dates', formatDate(startTime) + '/' + formatDate(endTime)],
+  ]);
+
+  window.open(ROOT + queryParameters.toString(), '_blank').focus();
+}
+
+function formatDate(d) {
+  let month = (d.getMonth() + 1).toString().padStart(2, '0'),
+      day = d.getDate().toString().padStart(2, '0'),
+      year = d.getFullYear().toString(),
+      hours = d.getHours().toString().padStart(2, '0'),
+      minutes = d.getMinutes().toString().padStart(2, '0');
+
+  return year + month + day + 'T' + hours + minutes + '00';
+}
+
+function start() {
+  if (startTime !== null) {
+    if (!window.confirm("Do you want to clear your current session?")) {
+      return;
+    }
+
+    // Clearing previous info
+    endTime = null;
+    localStorage.removeItem('end-time');
+    localStorage.removeItem('title');
+    localStorage.removeItem('desc');
+    document.getElementById('end').disabled = false;
+    document.getElementById('end-time').innerHTML = '';
+    document.getElementById('description').disabled = false;
+    document.getElementById('title').disabled = false;
+    document.getElementById('title').value = '';
+    document.getElementById('description').value = '';
+    document.getElementById("elapsed").innerHTML = 0.0;
+  }
+
+  startTime = new Date();
+  localStorage.setItem('start-time', startTime.toString());
+  document.getElementById('start-time').innerHTML = startTime.toString();
+
+}
+
+function end() {
+  endTime = new Date();
+  localStorage.setItem('end-time', endTime.toString());
+  disable();
+}
+
+function disable() {
+  document.getElementById('end-time').innerHTML = endTime.toString();
+  document.getElementById('end').disabled = true;
+  document.getElementById('description').disabled = true;
+  document.getElementById('title').disabled = true;
+}
+
+// Input is milliseconds
+// Output is hours w/ tenth's precision
+function timeDiff() {
+  if (startTime === null) {
+    return;
+  }
+
+  let t = endTime;
+  if (t === null) {
+    t = new Date();
+  }
+
+  // Calculating total time used
+  let minutes = (t.getTime() - startTime.getTime()) / MILLISECONDS_IN_MINUTES;
+
+  // Tenth-place precision
+  let hours = Math.ceil(minutes / 6) / 10;
+  return hours.toFixed(1);
+}
+
+function timeDiffRender() {
+  let d = timeDiff();
+  if (d != null) {
+    console.log('asdfasdfas');
+    document.getElementById("elapsed").innerHTML = timeDiff();
+  }
+}
+</script>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+}
+
+#content{
+  margin: 1rem auto 0 auto;
+  width: 85%;
+  font-family: 'Helvetica';
+}
+
+#content div {
+  margin: 1rem 0 1rem 0;
+}
+
+label{
+  display: block flex;
+}
+
+button {
+  padding: .5rem;
+}
+
+</style>
+
+<div id="content" onload="reload()">
+  <div>
+    <label for="title">Name of event:</label>
+    <input id="title" type="text" oninput="save()">
+  </div>
+
+  <div>
+    <label for="description">Event details:</label>
+    <textarea id="description" type="text" oninput="save()"></textarea>
+  </div>
+
+  <div id="info">
+    Start time: <span id="start-time"></span> <br>
+    End time: <span id="end-time"></span> <br>
+    Total hours: <span id="elapsed">0.0</span> hours
+  </div>
+
+  <div>
+    <button id="start" type="button" onclick="start()">
+      Start new event
+    </button>
+    <!-- <input id="pause" type="button" value="Pause"> -->
+    <button id="end" type="button" onclick="end()">
+      Finish
+    </button>
+  </div>
+
+  <button id="calendar" type="button" onclick="submit()">
+    Save to Google Calendar
+  </button>
+</div>
+
+<script defer>
+let t1 = localStorage.getItem('start-time');
+if (t1 !== null) {
+  startTime = new Date(t1);
+  document.getElementById('start-time').innerHTML = startTime.toString();
+}
+
+let t2 = localStorage.getItem('end-time');
+if (t2 !== null) {
+  endTime = new Date(t2);
+  document.getElementById('end-time').innerHTML = startTime.toString();
+  disable()
+}
+
+timeDiffRender();
+
+document.getElementById('title').value = localStorage.getItem('title');
+document.getElementById('description').value = localStorage.getItem('desc');
+</script>
